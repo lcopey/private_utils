@@ -1,20 +1,7 @@
 from typing import Optional
-from dash.html import Button, Div
-from dash import Dash, Input, Output
-
-
-class BaseComponent:
-    def register_callbacks(self, app: Dash):
-        raise NotImplementedError
-
-    def layout(self):
-        raise NotImplementedError
-
-    def generate_id(self, name: str):
-        id = self.id
-        if not isinstance(id, str):
-            id = str(id)
-        return '_'.join((id, name))
+from base import BaseComponent
+from dash import Input, Output, Dash
+from dash.html import Div, Button
 
 
 class CustomButton(BaseComponent):
