@@ -1,5 +1,7 @@
+from functools import update_wrapper
+from typing import Iterable
+
 from dash import Dash
-from typing import Iterable, Optional
 
 
 class BaseComponent:
@@ -44,31 +46,19 @@ def _parse_layout(layout):
     return func(layout)
 
 
-# class DashApp:
-#     def __init__(self, app: Optional[Dash] = None, **kwargs):
-#         if app is None:
-#             self.app = Dash(**kwargs)
-#         else:
-#             self.app = app
-#
-#     @property
-#     def layout(self):
-#         return self.app.layout
-#
-#     @layout.setter
-#     def layout(self, value):
-#         value = _parse_layout(value)
-#         self.app.layout = value
-#
-#     def run(self, debug: bool = False):
-#         self.app.run(debug=debug)
-#
-#     def callback(self, *args, **kwargs):
-#         return self.app.callback(*args, **kwargs)
-
 class DashApp(Dash):
     @Dash.layout.setter
     def layout(self, layout):
         #
         layout = _parse_layout(layout)
         Dash.layout.fset(self, layout)
+
+
+class ComponentFactory:
+    def __init__(self, base_class, **base_class_kwwargs):
+        self.base_class = base_class
+        self.keywords = base_class_kwwargs
+        update_wrapper(self, base_class)
+
+    def __call__(self, *args, **kwargs):
+        return self.base_class(*args, **kwargs, **self.keywords)

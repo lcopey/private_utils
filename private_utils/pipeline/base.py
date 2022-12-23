@@ -1,10 +1,12 @@
 from collections import defaultdict
-from typing import Iterable, Callable
+from typing import Iterable
+
+__all__ = ['Pipeline', 'PipelineItem']
 
 
 def _is_iterable(arg):
     if not isinstance(arg, Iterable) or isinstance(arg, str):
-        return (arg,)
+        return arg,
     return arg
 
 

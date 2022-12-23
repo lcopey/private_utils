@@ -1,7 +1,18 @@
 from typing import Optional
-from base import BaseComponent
-from dash import Input, Output, Dash
-from dash.html import Div, Button
+
+import dash_bootstrap_components as dbc
+from bootstrap_utils import ClassName, Color, Shadow
+from dash import Dash, Input, Output
+from dash.html import Div
+
+from base import BaseComponent, ComponentFactory
+
+CenteredButton = ComponentFactory(dbc.Button,
+                                  className=(ClassName()
+                                             .center()
+                                             .border_color(Color.light)
+                                             .apply(Shadow.large)))
+CenteredLabel = ComponentFactory(dbc.Label, className=ClassName().center(), style={'color': 'blue'})
 
 
 class CustomButton(BaseComponent):
@@ -9,8 +20,8 @@ class CustomButton(BaseComponent):
         self.label = label
         self.id = id
 
-        self.button_control = Button('Click me', id=self.generate_id('button'), n_clicks=0)
-        self.label_control = Div(self.label, id=self.generate_id('label_control'))
+        self.button_control = CenteredButton('Click me', id=self.generate_id('button'), n_clicks=0)
+        self.label_control = CenteredLabel(self.label, id=self.generate_id('label_control'))
         if app is not None:
             self.register_callbacks(app)
 
