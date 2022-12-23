@@ -1,4 +1,4 @@
-from pipeline import Pipeline
+from private_utils.pipeline import Pipeline
 
 pipeline = Pipeline()
 

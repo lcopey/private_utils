@@ -1,11 +1,14 @@
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import dash_bootstrap_components as dbc
-from bootstrap_utils import ClassName, Color, Shadow
-from dash import Dash, Input, Output
+from dash import Input, Output
 from dash.html import Div
 
-from base import BaseComponent, ComponentFactory
+from private_utils.dash_components import (BaseComponent, ClassName, Color,
+                                           ComponentFactory, DashApp, Shadow)
+
+if TYPE_CHECKING:
+    from dash import Dash
 
 CenteredButton = ComponentFactory(dbc.Button,
                                   className=(ClassName()
@@ -34,3 +37,13 @@ class CustomButton(BaseComponent):
 
     def layout(self):
         return Div([self.button_control, self.label_control])
+
+
+app = DashApp(name=__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+
+custom_button_1 = CustomButton(1, label='Clicked {}', app=app)
+custom_button_2 = CustomButton(2, label='Clicked {}', app=app)
+app.layout = Div([custom_button_1, custom_button_2])
+
+if __name__ == '__main__':
+    app.run(debug=True)

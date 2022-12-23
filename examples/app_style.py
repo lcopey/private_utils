@@ -1,14 +1,6 @@
-# app = DashApp(name=__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-#
-# custom_button_1 = CustomButton(1, label='Clicked {}', app=app)
-# custom_button_2 = CustomButton(2, label='Clicked {}', app=app)
-# app.layout = Div([custom_button_1, custom_button_2])
+from dash import Dash, dcc, html
 
-# if __name__ == '__main__':
-#     app.run(debug=True)
-
-from bootstrap_utils import Style
-from dash import Dash, html, dcc
+from private_utils.dash_components import Style
 
 app = Dash(__name__)
 

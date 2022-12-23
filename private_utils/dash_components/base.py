@@ -1,10 +1,18 @@
 from functools import update_wrapper
-from typing import Iterable
+from typing import Iterable, Optional
+from uuid import uuid4
 
 from dash import Dash
 
 
 class BaseComponent:
+    def __init__(self, id: Optional[str] = None, app: Optional[Dash] = None):
+        if not id:
+            id = uuid4()
+        self.id = id
+        if app is not None:
+            self.register_callbacks(app)
+
     def register_callbacks(self, app: Dash):
         raise NotImplementedError
 
@@ -49,7 +57,7 @@ def _parse_layout(layout):
 class DashApp(Dash):
     @Dash.layout.setter
     def layout(self, layout):
-        #
+        # subclass the property setter of Dash.
         layout = _parse_layout(layout)
         Dash.layout.fset(self, layout)
 
