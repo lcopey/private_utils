@@ -4,8 +4,9 @@ import dash_bootstrap_components as dbc
 from dash import Input, Output
 from dash.html import Div
 
-from private_utils.dash_components import (BaseComponent, ClassName, BootstrapColor,
-                                           ComponentFactory, DashApp, Shadow)
+from private_utils.dash_components import (BaseComponent, BootstrapColor,
+                                           ClassName, ComponentFactory,
+                                           DashApp, Shadow)
 
 if TYPE_CHECKING:
     from dash import Dash

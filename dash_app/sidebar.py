@@ -1,15 +1,11 @@
-from typing import TYPE_CHECKING
-
 import dash_bootstrap_components as dbc
 from dash.html import H2, Div, Hr, P
 
-from private_utils.dash_components import BaseComponent, Style
-
-if TYPE_CHECKING:
-    from dash import Dash
+from private_utils.dash_components import LayoutComponent, Style
 
 
-class SideBar(BaseComponent):
+class SideBar(LayoutComponent):
+
     def layout(self):
         sidebar_style = (Style()
                          .position('fixed')
@@ -37,6 +33,3 @@ class SideBar(BaseComponent):
             style=sidebar_style,
         )
         return sidebar
-
-    def register_callbacks(self, app: 'Dash'):
-        pass

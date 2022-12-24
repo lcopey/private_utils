@@ -3,12 +3,14 @@ from uuid import uuid4
 
 import dash_bootstrap_components as dbc
 import pandas as pd
-from dash import Input, Output
+from components import Button, Modal, hstack, vstack
+from dash import Input, Output, State
 from dash.dash_table import DataTable
 from dash.exceptions import PreventUpdate
 from dash.html import Div
 
-from private_utils.dash_components import BaseComponent, FontWeight, Style
+from private_utils.dash_components import (BaseComponent, FontWeight,
+                                           LayoutComponent, Style)
 
 if TYPE_CHECKING:
     from dash import Dash
@@ -46,10 +48,6 @@ class DataTableModel:
 
         return records
 
-    # @property
-    # def columns_id(self):
-    #     return self._columns_id
-
     @property
     def index_id(self):
         return self._index_col
@@ -66,8 +64,9 @@ class DataTableModel:
 
 
 class Table(BaseComponent):
-    def __init__(self, id: str, source_table: str, include_total: bool = False, app: 'Dash' = None):
-        super().__init__(id, None)
+    def __init__(self, app: 'Dash', id: str,
+                 source_table: str, include_total: bool = False, ):
+        super().__init__(id=id, app=app)
 
         self.data = DataTableModel.from_file(source_table, include_total=include_total)
 
@@ -81,20 +80,25 @@ class Table(BaseComponent):
                                data=self.data.records,
                                columns=self.data.columns,
                                style_data_conditional=style_data_conditional)
-        self.add_column_button = dbc.Button('Add column', id=self.generate_id('add_column'), n_clicks=0)
-        self.add_column_dropdown = dbc.DropdownMenu(id=self.generate_id('add_column_dropdown'))
-
-        self.register_callbacks(app)
+        self.add_column_button = Button('Add new', id=self.generate_id('new'), n_clicks=0)
+        self.duplicate_button = Button('Duplicate', id=self.generate_id('duplicate'), n_clicks=0)
+        self.modal = Modal(id='modal')
+        # self.add_column_dropdown = dbc.DropdownMenu(id=self.generate_id('add_column_dropdown'))
 
     def layout(self):
-        return Div(dbc.Row([dbc.Col([self.add_column_button, self.add_column_dropdown]),
-                            dbc.Col(self.table)]),
-                   style=Style().margin('1rem'))
 
-    def register_callbacks(self, app: 'Dash'):
-        @app.callback(Output(self.table, 'data'),
-                      Output(self.table, 'columns'),
-                      Input(self.add_column_button, 'n_clicks'))
+        return Div([
+            dbc.Row(
+                hstack(vstack(self.add_column_button, self.duplicate_button),
+                       self.table)
+            ),
+            self.modal],
+            style=Style().margin('1rem'))
+
+    def register_callbacks(self, ):
+        @self.app.callback(Output(self.table, 'data'),
+                           Output(self.table, 'columns'),
+                           Input(self.add_column_button, 'n_clicks'))
         def _add_column(clicks: int):
             if clicks:
                 new_column_name = f'column_{clicks}'
@@ -102,12 +106,24 @@ class Table(BaseComponent):
                 return self.data.records, self.data.columns
             raise PreventUpdate
 
+        @self.app.callback(Output(self.modal.modal, 'is_open'),
+                           Input(self.duplicate_button, 'n_clicks'),
+                           Input(self.modal.close, 'n_clicks'),
+                           State(self.modal.modal, 'is_open'))
+        def display_modal(open_click: int, close_click: int, is_open: bool):
+            if open_click or close_click:
+                return not is_open
 
-class MainPage(BaseComponent):
-    def __init__(self, source_table: str, id: str = None, app: 'Dash' = None):
-        super().__init__(id, app)
-        self.table = Table(id=self.generate_id('main_table'), source_table=source_table, include_total=True, app=app)
+
+class MainPage(LayoutComponent):
+    def __init__(self, app, source_table: str, id: str = None):
+        super().__init__(id=id)
+        self.table = Table(id=self.generate_id('main_table'), source_table=source_table, include_total=True,
+                           app=app)
 
     def layout(self):
         style = Style().margin(left='18rem', right='2rem').pad(left='2rem', right='1rem')
         return Div(self.table, style=style)
+
+    def register_callbacks(self):
+        pass
