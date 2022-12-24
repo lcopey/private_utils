@@ -8,7 +8,7 @@ from private_utils.dash_components import DashApp
 
 app = DashApp(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 nav_bar = SideBar(id='side_bar', app=app)
-main_page = MainPage(id='main_page')
+main_page = MainPage(id='main_page', source_table='./table.csv', app=app)
 app.layout = Div([Location(id="url"), nav_bar, main_page])
 
 if __name__ == '__main__':

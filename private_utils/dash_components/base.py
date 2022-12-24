@@ -3,21 +3,25 @@ from typing import Iterable, Optional
 from uuid import uuid4
 
 from dash import Dash
+from structlog import getLogger
+
+logger = getLogger(__name__)
 
 
 class BaseComponent:
     def __init__(self, id: Optional[str] = None, app: Optional[Dash] = None):
         if not id:
-            id = uuid4()
+            id = str(uuid4())
         self.id = id
+        self.app = app
         if app is not None:
             self.register_callbacks(app)
 
     def register_callbacks(self, app: Dash):
-        raise NotImplementedError
+        pass
 
     def layout(self):
-        raise NotImplementedError
+        pass
 
     def generate_id(self, name: str):
         id = self.id
@@ -28,9 +32,15 @@ class BaseComponent:
 
 def _parse_component(item):
     children = getattr(item, 'children', None)
-    if children and (isinstance(children, Iterable) and not isinstance(children, str)):
-        item.children = [_parse_layout(child) for child in children]
-        return item
+    if children and (isinstance(children, (list, tuple))):
+        new_children = []
+        for child in children:
+            new_children.append(_parse_layout(child))
+        # item.children = [_parse_layout(child) for child in children]
+        item.children = new_children
+
+    elif children:
+        item.children = _parse_layout(children)
 
     return item
 
@@ -44,12 +54,12 @@ def _parse_layout_iterable(items: Iterable):
 
 
 def _parse_layout(layout):
+    func = _parse_component
     if isinstance(layout, BaseComponent):
         func = _parse_custom_component
+
     elif isinstance(layout, (list, tuple)):
         func = _parse_layout_iterable
-    else:
-        func = _parse_component
 
     return func(layout)
 

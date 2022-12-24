@@ -4,7 +4,7 @@ import dash_bootstrap_components as dbc
 from dash import Input, Output
 from dash.html import Div
 
-from private_utils.dash_components import (BaseComponent, ClassName, Color,
+from private_utils.dash_components import (BaseComponent, ClassName, BootstrapColor,
                                            ComponentFactory, DashApp, Shadow)
 
 if TYPE_CHECKING:
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 CenteredButton = ComponentFactory(dbc.Button,
                                   className=(ClassName()
                                              .center()
-                                             .border_color(Color.light)
+                                             .border_color(BootstrapColor.light)
                                              .apply(Shadow.large)))
 CenteredLabel = ComponentFactory(dbc.Label, className=ClassName().center(), style={'color': 'blue'})
 

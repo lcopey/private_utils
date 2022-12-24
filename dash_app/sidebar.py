@@ -10,7 +10,6 @@ if TYPE_CHECKING:
 
 
 class SideBar(BaseComponent):
-
     def layout(self):
         sidebar_style = (Style()
                          .position('fixed')
