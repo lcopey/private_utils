@@ -7,10 +7,10 @@ from structlog import getLogger
 
 logger = getLogger(__name__)
 
-__all__ = ['LayoutComponent', 'BaseComponent', 'DashApp', 'ComponentFactory']
+__all__ = ['LayoutComponent', 'BaseComponent', 'DashApp', 'ComponentFactory', 'generate_uiid']
 
 
-def _generate_uid():
+def generate_uiid():
     return str(uuid4())
 
 
@@ -27,25 +27,25 @@ class LayoutComponent:
     """Base component to use when one want to apply oriented-object framework to Dash. It must implement the layout
     method. This method is called when parsing the global layout of the application."""
 
-    def __init__(self, id: Optional[str] = None):
-        self.id = id or _generate_uid()
+    def __init__(self, component_id: Optional[str] = None):
+        self.component_id = component_id or generate_uiid()
 
     def layout(self):
         raise NotImplementedError
 
     def generate_id(self, name: str):
-        id = self.id
-        if not isinstance(id, str):
-            id = str(id)
-        return '_'.join((id, name))
+        component_id = self.component_id
+        if not isinstance(component_id, str):
+            component_id = str(component_id)
+        return '_'.join((component_id, name))
 
 
 class BaseComponent(LayoutComponent, metaclass=MetaBaseComponent):
     """Base component to use when one want to apply oriented-object framework to Dash. It must implement the layout
     method and register_callbacks method."""
 
-    def __init__(self, app: Dash, id: Optional[str] = None):
-        super().__init__(id)
+    def __init__(self, app: Dash, component_id: Optional[str] = None):
+        super().__init__(component_id=component_id)
         self.app = app
 
     def register_callbacks(self):

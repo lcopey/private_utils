@@ -17,16 +17,16 @@ def hstack(*args):
 
 
 class Modal(LayoutComponent):
-    def __init__(self, id: Optional[str] = None):
-        super().__init__(id=id)
-        self.close = dbc.Button("CLOSE BUTTON", id=self.generate_id("close"), className="ml-auto")
+    def __init__(self, component_id: Optional[str] = None):
+        super().__init__(component_id=component_id)
+        self.close = dbc.Button("CLOSE BUTTON", id=self.generate_id("close_btn"), className="ml-auto")
         self.modal = dbc.Modal(
             [
                 dbc.ModalHeader("HEADER"),
                 dbc.ModalBody("BODY OF MODAL"),
                 dbc.ModalFooter(self.close),
             ],
-            id=self.generate_id('modal')
+            id=self.generate_id('window')
         )
 
     def layout(self):
