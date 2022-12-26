@@ -7,10 +7,11 @@ from structlog import getLogger
 
 logger = getLogger(__name__)
 
-__all__ = ['LayoutComponent', 'BaseComponent', 'DashApp', 'ComponentFactory', 'generate_uiid']
+__all__ = ['LayoutComponent', 'BaseComponent', 'DashApp', 'ComponentFactory', 'generate_uuid']
 
 
-def generate_uiid():
+def generate_uuid() -> str:
+    """Generate unique id."""
     return str(uuid4())
 
 
@@ -28,7 +29,7 @@ class LayoutComponent:
     method. This method is called when parsing the global layout of the application."""
 
     def __init__(self, component_id: Optional[str] = None):
-        self.component_id = component_id or generate_uiid()
+        self.component_id = component_id or generate_uuid()
 
     def layout(self):
         raise NotImplementedError
