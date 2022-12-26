@@ -1,19 +1,28 @@
-from typing import Optional
+from typing import Optional, Sequence
 
 import dash_bootstrap_components as dbc
+from dash.dcc import Dropdown
 
-from private_utils.dash_components import (ComponentFactory, LayoutComponent,
-                                           Style)
+from private_utils.dash_components import (ClassName, ComponentFactory,
+                                           LayoutComponent, Spacing)
 
-Button = ComponentFactory(dbc.Button, style=Style().margin('0.2rem'))
+# Button = ComponentFactory(dbc.Button, style=Style().margin('0.2rem'))
+# Dropdown = ComponentFactory(Dropdown, style=Style().margin('0.2rem'))
+Button = ComponentFactory(dbc.Button, className=ClassName().margin(Spacing.extra_small))
+Dropdown = ComponentFactory(Dropdown, className=ClassName().margin(Spacing.extra_small))
 
 
-def vstack(*args):
-    return [dbc.Row(arg) for arg in args]
+def hstack(iterable: Sequence, widths: Optional[Sequence] = None) -> Sequence:
+    if widths is None:
+        return [dbc.Col(arg) for arg in iterable]
+
+    assert len(iterable) == len(widths), f"iterable and widths should have the same length, " \
+                                         f"got {len(iterable)} and {len(widths)}"
+    return [dbc.Col(arg, width=width) for arg, width in zip(iterable, widths)]
 
 
-def hstack(*args):
-    return [dbc.Col(arg) for arg in args]
+def vstack(iterable) -> Sequence:
+    return [dbc.Row(arg) for arg in iterable]
 
 
 class Modal(LayoutComponent):
