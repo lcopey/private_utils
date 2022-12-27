@@ -15,6 +15,16 @@ def generate_uuid() -> str:
     return str(uuid4())
 
 
+class DashApp(Dash):
+    """Subclass of Dash application. It mainly allows to use BaseComponent as if it was a component from Dash."""
+
+    @Dash.layout.setter
+    def layout(self, layout):
+        # subclass the property setter of Dash.
+        layout = _walk_layout(layout)
+        Dash.layout.fset(self, layout)
+
+
 class MetaBaseComponent(type):
     """Metaclass for the BaseComponent. It defines the instance and call register callbacks after the __init__."""
 
@@ -45,7 +55,7 @@ class BaseComponent(LayoutComponent, metaclass=MetaBaseComponent):
     """Base component to use when one want to apply oriented-object framework to Dash. It must implement the layout
     method and register_callbacks method."""
 
-    def __init__(self, app: Dash, component_id: Optional[str] = None):
+    def __init__(self, app: DashApp, component_id: Optional[str] = None):
         super().__init__(component_id=component_id)
         self.app = app
 
@@ -91,16 +101,6 @@ def _walk_layout(layout):
         func = _walk_iterable_layout
 
     return func(layout)
-
-
-class DashApp(Dash):
-    """Subclass of Dash application. It mainly allows to use BaseComponent as if it was a component from Dash."""
-
-    @Dash.layout.setter
-    def layout(self, layout):
-        # subclass the property setter of Dash.
-        layout = _walk_layout(layout)
-        Dash.layout.fset(self, layout)
 
 
 class ComponentFactory:
