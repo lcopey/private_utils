@@ -3,6 +3,7 @@ from typing import Iterable, Optional
 from uuid import uuid4
 
 from dash import Dash
+# from dash_extensions.enrich import DashProxy
 from structlog import getLogger
 
 logger = getLogger(__name__)
