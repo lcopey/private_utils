@@ -1,19 +1,19 @@
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from typing import (TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Tuple,
                     Union)
 
 import dash_bootstrap_components as dbc
 import pandas as pd
 import requests
-from dash import Input, Output, State, ctx, dcc, no_update
+from dash import Input, Output, State, dcc
 from dash.dash_table import DataTable
 from dash.exceptions import PreventUpdate
 from dash.html import Div
 
-from private_utils.dash_components import (BaseComponent, ClassName,
-                                           ComponentFactory, FontWeight,
-                                           LayoutComponent, Spacing, Style,
-                                           generate_uuid)
+from private_utils.dash_components import (BaseComponent, CallbackDispatcher,
+                                           ClassName, ComponentFactory,
+                                           FontWeight, LayoutComponent,
+                                           Spacing, Style, generate_uuid)
 
 if TYPE_CHECKING:
     from private_utils.dash_components import DashApp
@@ -71,7 +71,8 @@ class TableWithControls(BaseComponent):
                  editable: bool = False,
                  include_total: bool = False,
                  total_label: str = 'Total',
-                 style_as_list_view=True, ):
+                 style_as_list_view=True,
+                 is_open: bool = True):
         """Instantiates a new table implementing additional controls such as :
          - Column addition
          - Column duplication
@@ -100,6 +101,8 @@ class TableWithControls(BaseComponent):
             Label to use in the index column for the total row.
         style_as_list_view :
             Remove vertical lines from the table.
+        is_open :
+            Collapsable options are open by default.
         """
         super().__init__(component_id=component_id, app=app)
 
@@ -144,7 +147,7 @@ class TableWithControls(BaseComponent):
         self.collapse_button = Button(id=self.generate_id('collapse_button'), n_clicks=0)
         self.collapse_options = dbc.Collapse(
             id=self.generate_id('collapse_options'),
-            is_open=False)
+            is_open=is_open)
 
     @classmethod
     def from_file_path(cls, app: 'DashApp',
@@ -154,7 +157,8 @@ class TableWithControls(BaseComponent):
                        editable: bool = False,
                        include_total: bool = False,
                        total_label: str = 'Total',
-                       style_as_list_view: bool = True, ) -> 'TableWithControls':
+                       style_as_list_view: bool = True,
+                       is_open: bool = True) -> 'TableWithControls':
         """Instantiate the Table from an initial csv file.
 
         Parameters
@@ -175,6 +179,8 @@ class TableWithControls(BaseComponent):
             Label to use in the index column for the total row.
         style_as_list_view :
             Remove vertical lines from the table.
+        is_open :
+            Collapsable options are opened by default.
 
         Returns
         -------
@@ -340,50 +346,96 @@ class TableWithControls(BaseComponent):
                 return not is_open
             raise PreventUpdate
 
-        @self.app.callback(Output(self.table, 'columns'),
-                           Output(self.columns_order, 'data'),
-                           Output(self.duplicate_dropdown, 'options'),
-                           Output(self.columns_created, 'data'),
-                           Output(self.table, 'data'),
-                           Output(self.duplicate_dropdown, 'value'),
-                           Input(self.add_column_button, 'n_clicks'),
-                           Input(self.duplicate_dropdown, 'value'),
-                           Input(self.table, 'data'),
-                           State(self.table, 'columns'),
-                           State(self.columns_order, 'data'),
-                           State(self.columns_created, 'data'))
-        def _update(_,
-                    duplicate_choice_id: str,
-                    records: _RecordType,
-                    current_columns: _ColumnsType,
-                    current_columns_order: List[str],
-                    columns_created: int, ):
-            """Append a column to the table. Also update the dropdown selection."""
-            # for convenience, create a return type
-            output_names = ('columns', 'columns_order', 'options', 'columns_created', 'records', 'duplicate_value')
-            Result = namedtuple('result', output_names, defaults=(no_update,) * len(output_names))
+        # @self.app.callback(Output(self.table, 'columns'),
+        #                    Output(self.columns_order, 'data'),
+        #                    Output(self.duplicate_dropdown, 'options'),
+        #                    Output(self.columns_created, 'data'),
+        #                    Output(self.table, 'data'),
+        #                    Output(self.duplicate_dropdown, 'value'),
+        #                    Input(self.add_column_button, 'n_clicks'),
+        #                    Input(self.duplicate_dropdown, 'value'),
+        #                    Input(self.table, 'data'),
+        #                    State(self.table, 'columns'),
+        #                    State(self.columns_order, 'data'),
+        #                    State(self.columns_created, 'data'))
+        # def _update(_,
+        #             duplicate_choice_id: str,
+        #             records: _RecordType,
+        #             current_columns: _ColumnsType,
+        #             current_columns_order: List[str],
+        #             columns_created: int, ):
+        #     """Append a column to the table. Also update the dropdown selection."""
+        #     # for convenience, create a return type
+        #     output_names = ('columns', 'columns_order', 'options', 'columns_created', 'records', 'duplicate_value')
+        #     Result = namedtuple('result', output_names, defaults=(no_update,) * len(output_names))
+        #
+        #     context_id = ctx.triggered_id
+        #     if context_id == self.add_column_button.id:
+        #         columns, columns_order, options = \
+        #             self.add_new_column(columns_created, current_columns, current_columns_order)
+        #         records = self.validate_table_records(records, columns)
+        #         return Result(columns=columns, columns_order=columns_order, options=options,
+        #                       columns_created=columns_created + 1, records=records)
+        #
+        #     elif context_id == self.duplicate_dropdown.id:
+        #         columns, columns_order, options, records = \
+        #             self.duplicate_column(columns_created, current_columns, current_columns_order,
+        #                                   duplicate_choice_id, records)
+        #         records = self.validate_table_records(records, columns)
+        #         return Result(columns=columns, columns_order=columns_order, options=options,
+        #                       columns_created=columns_created + 1, records=records, duplicate_value=None)
+        #
+        #     elif context_id == self.table.id:
+        #         records = self.validate_table_records(records, current_columns)
+        #         return Result(records=records)
+        #
+        #     raise PreventUpdate
+        with CallbackDispatcher(self.app) as dispatcher:
+            @dispatcher.callback(Output(self.table, 'columns'),
+                                 Output(self.columns_order, 'data'),
+                                 Output(self.duplicate_dropdown, 'options'),
+                                 Output(self.columns_created, 'data'),
+                                 Input(self.add_column_button, 'n_clicks'),
+                                 State(self.table, 'columns'),
+                                 State(self.columns_order, 'data'),
+                                 State(self.columns_created, 'data'))
+            def _add_column(add_column_click: int, current_columns: _ColumnsType, current_columns_order: List[str],
+                            columns_created: int):
+                if add_column_click:
+                    columns, columns_order, options = \
+                        self.add_new_column(columns_created, current_columns, current_columns_order)
+                    # records = self.validate_table_records(records, columns)
+                    return columns, columns_order, options, columns_created + 1
+                raise PreventUpdate
 
-            context_id = ctx.triggered_id
-            if context_id == self.add_column_button.id:
-                columns, columns_order, options = \
-                    self.add_new_column(columns_created, current_columns, current_columns_order)
-                records = self.validate_table_records(records, columns)
-                return Result(columns=columns, columns_order=columns_order, options=options,
-                              columns_created=columns_created + 1, records=records)
-
-            elif context_id == self.duplicate_dropdown.id:
+            @dispatcher.callback(Output(self.table, 'columns'),
+                                 Output(self.columns_order, 'data'),
+                                 Output(self.duplicate_dropdown, 'options'),
+                                 Output(self.columns_created, 'data'),
+                                 Output(self.table, 'data'),
+                                 Output(self.duplicate_dropdown, 'value'),
+                                 Input(self.duplicate_dropdown, 'value'),
+                                 State(self.table, 'data'),
+                                 State(self.table, 'columns'),
+                                 State(self.columns_order, 'data'),
+                                 State(self.columns_created, 'data'))
+            def _duplicate_column(duplicate_choice_id: str,
+                                  records: _RecordType,
+                                  current_columns: _ColumnsType,
+                                  current_columns_order: List[str],
+                                  columns_created: int, ):
                 columns, columns_order, options, records = \
                     self.duplicate_column(columns_created, current_columns, current_columns_order,
                                           duplicate_choice_id, records)
                 records = self.validate_table_records(records, columns)
-                return Result(columns=columns, columns_order=columns_order, options=options,
-                              columns_created=columns_created + 1, records=records, duplicate_value=None)
+                return columns, columns_order, options, columns_created + 1, records, None
 
-            elif context_id == self.table.id:
+            @dispatcher.callback(Output(self.table, 'data'),
+                                 Input(self.table, 'data'),
+                                 State(self.table, 'columns'))
+            def _update_data(records: _RecordType, current_columns: _ColumnsType):
                 records = self.validate_table_records(records, current_columns)
-                return Result(records=records)
-
-            raise PreventUpdate
+                return records
 
 
 class LinkedTable(BaseComponent):

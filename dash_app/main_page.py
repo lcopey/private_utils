@@ -15,7 +15,8 @@ class MainPage(BaseComponent):
                                            file_path=file_path,
                                            include_total=True,
                                            editable=True,
-                                           style_as_list_view=False))
+                                           style_as_list_view=False,
+                                           is_open=True))
         self.linked_table = LinkedTable(component_id=self.generate_id('linked_table'),
                                         app=app,
                                         linked=self.first_table)
