@@ -1,11 +1,11 @@
 from collections import defaultdict
-from typing import (TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Tuple,
-                    Union)
+from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional,
+                    Sequence, Tuple, Union)
 
 import dash_bootstrap_components as dbc
 import pandas as pd
 import requests
-from dash import Input, Output, State, dcc
+from dash import Input, Output, State, ctx, dcc
 from dash.dash_table import DataTable
 from dash.exceptions import PreventUpdate
 from dash.html import Div
@@ -137,12 +137,15 @@ class TableWithControls(BaseComponent):
                                style_as_list_view=style_as_list_view)
 
         # Defines options for the table.
-        self.add_column_button = Button('Add new', id=self.generate_id('new_col_button'), n_clicks=0)
+        self.add_column_button = Button('Add new', id=self.generate_id('add_column_button'), n_clicks=0)
         self.columns_created = dcc.Store(id=self.generate_id('columns_created'), data=3)
 
         options = self.converter.datatable_columns_to_dropdown_options(columns, index=False)
         self.duplicate_dropdown = Dropdown(id=self.generate_id('duplicate_dropdown'),
                                            options=options, clearable=False, placeholder='Duplicate')
+
+        self.rename_columns = Button('Rename', id=self.generate_id('rename_columns'), n_clicks=0, disabled=True)
+        self.import_column = Button('Import', id=self.generate_id('import'), n_clicks=0, disabled=True)
 
         self.collapse_button = Button(id=self.generate_id('collapse_button'), n_clicks=0)
         self.collapse_options = dbc.Collapse(
@@ -321,7 +324,7 @@ class TableWithControls(BaseComponent):
     def layout(self) -> Div:
         """Defines the layout."""
         self.duplicate_dropdown.style = Style().width('7rem')
-        options_control = [self.add_column_button, self.duplicate_dropdown]
+        options_control = [self.add_column_button, self.duplicate_dropdown, self.rename_columns, self.import_column]
         stores = [self.columns_order, self.columns_created]
         self.collapse_options.children = dbc.Card(
             dbc.CardBody(options_control, style=Style().row_flex().background('whitesmoke'))
@@ -438,10 +441,57 @@ class TableWithControls(BaseComponent):
                 return records
 
 
+class ApiResultsStore(BaseComponent):
+    def __init__(self, app: 'DashApp', component_id: str,
+                 source_control, source_property,
+                 preprocess: Callable, postprocess: Callable):
+        super().__init__(app=app, component_id=component_id)
+        self.source_control = source_control
+        self.source_property = source_property
+        self.store = dcc.Store(id=self.generate_id('store'))
+        self.status_store = dcc.Store(id=self.generate_id('status'), data=False)
+        self.preprocess = preprocess
+        self.postprocess = postprocess
+
+    def layout(self) -> Div:
+        return Div([self.store, self.status_store])
+
+    def register_callbacks(self):
+        @self.app.callback(Output(self.store, 'data'),
+                           Input(self.source_control, self.source_property))
+        def _api_call(data):
+            url = 'http://localhost:8000/compute'
+            data = self.preprocess(data)
+            response = requests.post(url, json=data)
+            if response.status_code == 200:
+                data = self.postprocess(response.json())
+                print('api call successful')
+                return data
+            raise PreventUpdate
+
+        @self.app.callback(Output(self.status_store, 'data'),
+                           Input(self.source_control, self.source_property),
+                           Input(self.store, 'data'))
+        def _update_status(*_):
+            print(ctx.triggered_id)
+            if ctx.triggered_id == self.store.id:
+                print('Changing status to True')
+                return True
+
+            if ctx.triggered_id == self.source_control.id:
+                print('Changing status to False')
+                return False
+
+            raise PreventUpdate
+
+
 class LinkedTable(BaseComponent):
     """Table with content linked to another Table."""
 
-    def __init__(self, app: 'DashApp', component_id: str, linked: TableWithControls):
+    def __init__(self, app: 'DashApp', component_id: str,
+                 column_source_control, column_source_property,
+                 data_source_control, data_source_property,
+                 style_cell_conditional):
         """Instantiates a new LinkedTable control.
 
         Parameters
@@ -455,12 +505,18 @@ class LinkedTable(BaseComponent):
         """
         super().__init__(app=app, component_id=component_id)
 
-        self.linked = linked
-        self.converter = linked.converter
-        table_component = linked.table
-        self.table = DataTable(columns=table_component.columns,
+        self.column_source_control = column_source_control
+        self.column_source_property = column_source_property
+        self.data_source_control = data_source_control
+        self.data_source_property = data_source_property
+        # self.linked = linked
+        # self.converter = linked.converter
+        # table_component = linked.table
+        # style_cell_conditional=table_component.style_cell_conditional
+        columns = getattr(column_source_control, column_source_property)
+        self.table = DataTable(columns=columns,
                                style_header=Style().background('whitesmoke').font_weight(FontWeight.bold),
-                               style_cell_conditional=table_component.style_cell_conditional)
+                               style_cell_conditional=style_cell_conditional)
 
     def layout(self) -> Div:
         """Defines the layout."""
@@ -470,19 +526,24 @@ class LinkedTable(BaseComponent):
         """Register callbacks."""
 
         @self.app.callback(Output(self.table, 'columns'),
-                           Input(self.linked.table, 'columns'))
+                           Input(self.column_source_control, self.column_source_property))
         def _synchronize_columns(columns: _ColumnsType) -> _ColumnsType:
             return columns
 
         @self.app.callback(Output(self.table, 'data'),
-                           Input(self.linked.table, 'data'))
-        def _synchronize_data(records: _RecordType) -> Optional[_RecordType]:
-            url = 'http://localhost:8000/compute'
-            records = self.converter.records_to_dict_of_dict(records)
-            response = requests.post(url, json=records)
-            if response.status_code == 200:
-                return self.converter.dict_of_dict_to_records(response.json())
-            raise PreventUpdate
+                           Input(self.data_source_control, self.data_source_property))
+        def _synchronize_data(records):
+            return records
+
+        # @self.app.callback(Output(self.table, 'data'),
+        #                    Input(self.linked.table, 'data'))
+        # def _synchronize_data(records: _RecordType) -> Optional[_RecordType]:
+        #     url = 'http://localhost:8000/compute'
+        #     records = self.converter.records_to_dict_of_dict(records)
+        #     response = requests.post(url, json=records)
+        #     if response.status_code == 200:
+        #         return self.converter.dict_of_dict_to_records(response.json())
+        #     raise PreventUpdate
 
 
 class TableFormatConverter:
