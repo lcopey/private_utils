@@ -1,5 +1,6 @@
 import dash_bootstrap_components as dbc
 from dash.html import H2, Div, Hr, P
+from dash_bootstrap_templates import ThemeChangerAIO
 
 from private_utils.dash_components import LayoutComponent, Style
 
@@ -15,6 +16,7 @@ class SideBar(LayoutComponent):
                          .background("#f8f9fa"))
         sidebar = Div(
             [
+                ThemeChangerAIO(aio_id="theme", radio_props={"value": dbc.themes.FLATLY}),
                 H2("Sidebar", className="display-4"),
                 Hr(),
                 P(
