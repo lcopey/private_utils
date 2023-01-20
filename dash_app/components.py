@@ -111,7 +111,8 @@ class TableWithControls(BaseComponent):
         self.index_id = index_id
         self.new_col_format = new_col_format
         self.editable = editable
-        self._default_columns_options = {'type': 'numeric', 'editable': editable}
+        # self._default_columns_options = {'type': 'numeric', 'editable': editable}
+        self._default_columns_options = {'type': 'numeric'}
         self.converter = TableFormatConverter(index_id=index_id,
                                               total_label=total_label,
                                               default_columns_options=self._default_columns_options)
@@ -134,7 +135,8 @@ class TableWithControls(BaseComponent):
                                style_header=Style().background('whitesmoke').font_weight(FontWeight.bold),
                                style_data_conditional=style_data_conditional,
                                style_cell_conditional=style_cell_conditional,
-                               style_as_list_view=style_as_list_view)
+                               style_as_list_view=style_as_list_view,
+                               editable=editable)
 
         # Defines options for the table.
         self.add_column_button = Button('Add new', id=self.generate_id('add_column_button'), n_clicks=0)
@@ -330,12 +332,12 @@ class TableWithControls(BaseComponent):
             dbc.CardBody(options_control, style=Style().row_flex().background('whitesmoke'))
         )
         self.collapse_button.style = Style().height('0.8rem')
-        table_options = Div(
+        table_options = dbc.Col(
             vstack([self.collapse_button, self.collapse_options])
         )
 
         stack = vstack([table_options, self.table, *stores])
-        return Div(stack, style=Style().margin('1rem'))
+        return dbc.Col(stack, style=Style().margin('1rem'))
 
     def register_callbacks(self, ):
         """Register callbacks."""
